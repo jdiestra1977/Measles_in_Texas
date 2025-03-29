@@ -3,6 +3,7 @@ library(tidycensus)
 library(readxl)
 library(tigris)
 library(cowplot)
+library(sf)
 
 setwd("~/Documents/GitHub/Measles_in_Texas/")
 source("../SVICalculation/functionsForSVI.R")
@@ -27,18 +28,116 @@ population_county_TX<-population_county_US %>% separate(NAME,c("County","State")
 # options(tigris_use_cache = TRUE)  # Cache the data to avoid re-downloading
 # texas_counties <- counties(state = "TX", year = 2022, class = "sf")  # Get counties for Texas  
 
-cases<-read_excel("Data/measles_TX_02_28_2025.xlsx")
+#cases<-read_excel("Data/measles_TX_02_28_2025.xlsx")
+cases<-read_excel("Data/measles_TX_02_28_2025.xlsx",sheet = 2)
 
-counties_with_cases<-population_county_TX %>% filter(County %in% cases$County)
+counties_with_cases<-population_county_TX %>% filter(County %in% cases$County) %>%
+  mutate(centroid = st_centroid(geometry)) %>%
+  mutate(lon = st_coordinates(centroid)[,1],
+         lat = st_coordinates(centroid)[,2])
 
 cases_map<-ggplot() + theme_void() +
   geom_sf(data=population_county_TX) +
-  geom_sf(data = counties_with_cases,fill="red")
+  geom_sf(data = counties_with_cases,fill="red") +
+  geom_text(data = counties_with_cases, aes(x = lon, y = lat, label = County),
+            color = "black", fontface = "bold", size = 3)
+
+cases_map
 
 svi_map<-population_county_TX %>% left_join(svi_counties_TX %>% select(GEOID=Zip,SVI)) %>%
   ggplot(aes(fill=SVI)) + theme_void() +
   geom_sf()
 
+plot_grid(cases_map,svi_map)
+
+### School districts data 2023 - 2024 
+# From: https://schoolsdata2-tea-texas.opendata.arcgis.com/datasets/TEA-Texas::schools-2023-to-2024/explore?location=31.203682%2C-99.372450%2C6.30
+library(sf)
+
+schools2023<-read_sf("Data/Schools_2023_to_2024/Schools_2023_to_2024.shp")
+schools2023 %>% glimpse()
+
+gradesAndAges<-data.frame(Grade_range=c("EE-05","06-08","09-12","EE-06","06-12","EE KG-06",
+                                        "EE KG-12","07-08","EE KG-05","KG-12","PK-05","06",
+                                        "09-10","12-AE","EE-KG","KG-06","PK"),
+                          Age_range=c("3–11","11–14","14–18","3–12","11–18","3–12","3–18",
+                                      "12–14","3–11","5–18","4–11","11","14–16","17+","3–5",
+                                      "5–12","4"),
+                          number_of_grades=c(9,4,5,10,8,10,16,3,9,14,8,1,3,1,3,8,1))
+
+gradesAndAges %>% mutate(ver=as.numeric(as.factor(Age_range)))
+
+ggplot() + theme_void() +
+  geom_sf(data=population_county_TX,fill="white") +
+  geom_sf(data = counties_with_cases,fill="red") +
+  geom_text(data = counties_with_cases, aes(x = lon, y = lat, label = County),
+            color = "blue", fontface = "bold", size = 3) +
+  geom_sf(data=schools2023,alpha=0.2,color="black")
+
+schools2023$USER_Dis_1 %>% unique() %>% length()
+
+
+schools2023 %>% #filter(USER_Dis_1=="AUSTIN ISD") %>%
+  ggplot() + geom_sf()
+
+austin_ISD<-schools2023 %>% 
+  filter(USER_Dis_1=="AUSTIN ISD") %>%
+  select(Grade_range=USER_Grade,School_enroll_2023=USER_Sch15,School_status=USER_Sch16,
+         School_Type=School_Typ,District_ISD=USER_Dis_1,District_enroll_2023=USER_Dis16,
+         School_number=USER_Schoo,School_name=USER_Sch_1) %>%
+  filter(School_enroll_2023>0)
+
+austin_ISD$School_enroll_2023 %>% sum()
+
+austin_ISD %>% as_tibble() %>% select(-geometry) %>% #pull(School_Type) %>% unique()
+  select(Grade_range,School_Type,School_enroll_2023) %>%
+  group_by(Grade_range,School_Type) %>% count() %>% arrange(desc(n)) 
+
+austin_ISD %>% as_tibble() %>% select(-geometry) %>% #pull(School_Type) %>% unique()
+  select(Grade_range,School_Type,School_enroll_2023) %>%
+  left_join(gradesAndAges) %>%
+  arrange(desc(School_enroll_2023)) %>% #print(n=130)
+  ggplot(aes(x=School_enroll_2023)) +
+  geom_histogram(binwidth = 100)
+
+dataFrame<-austin_ISD %>% as_tibble() %>%
+  select(Grade_range,School_enroll_2023) %>%
+  left_join(gradesAndAges)
+
+# Function to expand age range
+expand_age_range <- function(age_str) {
+  if (age_str == "17+") return(17)  # Treat "17+" as age 17 only
+  age_nums <- as.numeric(unlist(strsplit(age_str, "–")))
+  if (length(age_nums) == 2) return(seq(age_nums[1], age_nums[2]))  # Handle ranges (e.g., 3-12)
+  return(as.numeric(age_str))  # Single ages (e.g., "11" or "4")
+}
+
+#I will assume students will be equally distributed by age in the school
+#I do this to have an estimated number of students by age. With this I will
+#know the size of the community I will be modeling
+
+# Expand dataframe by age
+dataFrame_expanded <- dataFrame %>%
+  mutate(Ages = map(Age_range, expand_age_range)) %>%  # Convert Age_range to list of ages
+  unnest(Ages) %>%
+  mutate(Enrollment_per_age = School_enroll_2023 %/% number_of_grades)  # Integer division
+
+# Distribute remainder across first few ages
+dataFrame_expanded <- dataFrame_expanded %>%
+  group_by(Grade_range, School_enroll_2023) %>%
+  mutate(Enrollment_per_age = Enrollment_per_age + (row_number() <= (School_enroll_2023 %% number_of_grades))) %>%
+  ungroup()
+
+#Now, my age distributions aggregate 0-4, 5-17, then, with this I will get the 
+#estimated number of adults 18+.
+
+dataFrame_expanded %>% 
+  mutate(groups_ages=ifelse(Ages<5,"0-4",ifelse(Ages>5 & Ages<18,"5-17","18+"))) %>%
+  select(groups_ages,Enrollment_per_age) %>%
+  group_by(groups_ages) %>% summarise_each(sum)
+
+
+age_dists_groups
 
 ### RUCA values ZCTA level ---------
 #From this link: https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes
@@ -59,6 +158,7 @@ rucaSd_map<-population_county_TX %>% left_join(ruca_county_agg %>% ungroup() %>%
   geom_sf()
 
 plot_grid(cases_map,svi_map,rucaMean_map,rucaSd_map)
+
 
 #Household distribution and age groups in TX
 library(tidycensus)
@@ -107,6 +207,13 @@ dist_households<-total_number_homes %>%
   ggplot(aes(x=type,y=probHomes)) + geom_col() + theme_bw() +
   xlab("Number of people in household") + ylab("Proportion of households") +
   theme(text=element_text(size=18))
+
+age_dists_groups<-age_groups_by_zipcode %>% 
+  filter(GEOID %in% population_zcta_TX$GEOID) %>% ungroup() %>% select(-GEOID) %>%
+  group_by(age_group) %>% summarise_each(sum) %>%
+  mutate(total=sum(estimate)) %>%
+  mutate(age_group=age_group %>% fct_relevel(c("0-4","5-17","18+"))) %>%
+  slice(1,3,2) %>% mutate(prob_ages=estimate/total)
 
 dist_ages<-age_groups_by_zipcode %>% 
   filter(GEOID %in% population_zcta_TX$GEOID) %>% ungroup() %>% select(-GEOID) %>%
@@ -413,4 +520,7 @@ age_groups_by_zipcode %>% ungroup() %>% select(-GEOID) %>%
 age_distribution_all_US <- age_groups_by_zipcode %>% ungroup() %>% select(-GEOID) %>%
   group_by(age_group) %>% summarise_each(sum) %>% mutate(total=sum(estimate),proporAges=estimate/total) %>% slice(1,3,2)
 save(age_distribution_all_US,file="~/Documents/GitHub/Mpox_2024/Data/age_distribution_all_US.RData")
+
+#Vaccination in counties / 
+
 

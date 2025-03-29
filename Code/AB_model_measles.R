@@ -111,7 +111,7 @@ household_size_map <- c("one_person" = 1, "two_person" = 2, "three_person" = 3,
 n_households <- 1000  # Number of households to simulate
 n_days <- 100  # Number of days for simulation
 
-vaccination_coverage <- 0.8  # X% vaccinated
+vaccination_coverage <- 0  # X% vaccinated
 
 # Generate households
 households <- data.frame(
