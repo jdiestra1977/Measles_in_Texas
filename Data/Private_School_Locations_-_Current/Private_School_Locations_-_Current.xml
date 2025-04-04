@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><MD_Metadata xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:xalan="http://xml.apache.org/xalan" xmlns:srv="http://www.isotc211.org/2005/srv" xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gml="http://www.opengis.net/gml" xmlns="http://www.isotc211.org/2005/gmd">
+    <characterSet>
+        <MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" codeSpace="ISOTC211/19115">utf8</MD_CharacterSetCode>
+    </characterSet>
+    <hierarchyLevel>
+        <MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset" codeSpace="ISOTC211/19115">dataset</MD_ScopeCode>
+    </hierarchyLevel>
+    <hierarchyLevelName>
+        <gco:CharacterString>dataset</gco:CharacterString>
+    </hierarchyLevelName>
+    <contact gco:nilReason="missing"/>
+    <dateStamp gco:nilReason="missing"/>
+    <metadataStandardName>
+        <gco:CharacterString>ISO 19139 Geographic Information - Metadata - Implementation Specification</gco:CharacterString>
+    </metadataStandardName>
+    <metadataStandardVersion>
+        <gco:CharacterString>2007</gco:CharacterString>
+    </metadataStandardVersion>
+    <identificationInfo>
+        <MD_DataIdentification>
+            <citation>
+                <CI_Citation>
+                    <title>
+                        <gco:CharacterString>Private School Locations - Current</gco:CharacterString>
+                    </title>
+                    <date gco:nilReason="missing"/>
+                </CI_Citation>
+            </citation>
+            <abstract>
+                <gco:CharacterString>The National Center for Education Statistics’ (NCES) Education Demographic and Geographic Estimates (EDGE) program develops bi-annually updated point locations (latitude and longitude) for private schools included in the NCES Private School Survey (PSS). The PSS is conducted to provide a biennial count of the total number of private schools, teachers, and students. The PSS school location and associated geographic area assignments are derived from reported information about the physical location of private schools. The school geocode file includes supplemental geographic information for the universe of schools reported in the most current PSS school collection, and they can be integrated with the survey files through use of institutional identifiers included in both sources. For more information about NCES school point data, see:https://nces.ed.gov/programs/edge/Geographic/SchoolLocationsandhttps://nces.ed.gov/programs/edge/Geographic/LocaleBoundariesPrevious collections are available for the following year:2021-222019-202017-182015-16All information contained in this file is in the public domain. Data users are advised to review NCES program documentation and feature class metadata to understand the limitations and appropriate use of these data.</gco:CharacterString>
+            </abstract>
+            <purpose>
+                <gco:CharacterString>Point locations of 2021-22 private schools created by the National Center for Education Statistics’ (NCES) Education Demographic and Geographic Estimates (EDGE) program.</gco:CharacterString>
+            </purpose>
+            <credit>
+                <gco:CharacterString>NCES EDGE</gco:CharacterString>
+            </credit>
+            <descriptiveKeywords>
+                <MD_Keywords>
+                    <keyword>
+                        <gco:CharacterString>Private School Universe Survey</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>PSS</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>Private Schools</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>National Center for Education Statistics</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>NCES</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>Private School Locations</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>U.S. Census Bureau</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>Education Demographic and Geographic Estimates Program</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>EDGE</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>Points</gco:CharacterString>
+                    </keyword>
+                    <keyword>
+                        <gco:CharacterString>United States</gco:CharacterString>
+                    </keyword>
+                </MD_Keywords>
+            </descriptiveKeywords>
+            <resourceConstraints>
+                <MD_Constraints>
+                    <useLimitation>
+                        <gco:CharacterString>https://www.usa.gov/publicdomain/label/1.0/</gco:CharacterString>
+                    </useLimitation>
+                </MD_Constraints>
+            </resourceConstraints>
+            <language gco:nilReason="missing"/>
+            <characterSet>
+                <MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8" codeSpace="ISOTC211/19115">utf8</MD_CharacterSetCode>
+            </characterSet>
+            <extent>
+                <EX_Extent>
+                    <geographicElement>
+                        <EX_GeographicBoundingBox>
+                            <westBoundLongitude>
+                                <gco:Decimal>-159.7130344632196</gco:Decimal>
+                            </westBoundLongitude>
+                            <eastBoundLongitude>
+                                <gco:Decimal>-67.38873869254184</gco:Decimal>
+                            </eastBoundLongitude>
+                            <southBoundLatitude>
+                                <gco:Decimal>19.49081689018571</gco:Decimal>
+                            </southBoundLatitude>
+                            <northBoundLatitude>
+                                <gco:Decimal>64.87415472772116</gco:Decimal>
+                            </northBoundLatitude>
+                        </EX_GeographicBoundingBox>
+                    </geographicElement>
+                </EX_Extent>
+            </extent>
+        </MD_DataIdentification>
+    </identificationInfo>
+</MD_Metadata>

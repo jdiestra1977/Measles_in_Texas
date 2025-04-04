@@ -89,16 +89,16 @@ simulate_day <- function(agents) {
 # This block may not change too much
 # Define household sizes and age groups
 household_sizes <- c("one_person", "two_person", "three_person", "four_person", "five_person", "six_person", "seven_plus")
-prob_SVIGroup4 <- c(0.25738387,0.31382916,0.16402815,0.14270570,0.07521527,0.02938847,0.01744939) #This is for TX
+prob_household <- c(0.25738387,0.31382916,0.16402815,0.14270570,0.07521527,0.02938847,0.01744939) #This is for TX
 age_groups <- c("0-4", "5-17", "18+")
 age_group_probs <- c(0.06580155,0.18689912,0.74729933) #This is for TX
 
-SAR=0.99 # Secondary Attack Rate # Double from initial
+SAR=0.5 # Secondary Attack Rate 
 beta_within <- -log(1-SAR)/infectious_mean # Assuming all household members interact equally
 
 # Disease transmission parameters (Adjusted for Measles)
-beta_within <- 0.9  # Higher household transmission
-beta_between <- beta_within/2  # Higher community transmission
+#beta_within <- 0.9  # Higher household transmission
+beta_between <- beta_within/1  # Higher community transmission
 incubation_mean <- 11  # Measles incubation period (days)
 infectious_mean <- 8  # Measles infectious period (days)
 
@@ -116,7 +116,7 @@ vaccination_coverage <- 0  # X% vaccinated
 # Generate households
 households <- data.frame(
   household_id = 1:n_households,
-  size_household = sample(household_sizes, n_households, replace = TRUE, prob = prob_SVIGroup4)
+  size_household = sample(household_sizes, n_households, replace = TRUE, prob = prob_household)
 )
 
 # Generate agents with vaccination
@@ -158,11 +158,11 @@ for (day in 1:n_days) {
 }
 
 # Plot time series of states
-ggplot(state_counts, aes(x = day)) +
+ggplot(state_counts %>% filter(day<50), aes(x = day)) +
   #geom_line(aes(y = S, color = "S")) +
   geom_line(aes(y = E, color = "E")) +
   geom_line(aes(y = I, color = "I")) +
-  geom_line(aes(y = R, color = "R")) +
+#  geom_line(aes(y = R, color = "R")) +
 #  geom_line(aes(y = V, color = "V")) +
   labs(title = "Time Series of SEIRV States", x = "Day", y = "Number of Individuals", color = "State") +
   theme_minimal()

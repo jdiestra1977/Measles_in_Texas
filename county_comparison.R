@@ -396,4 +396,16 @@ all_compare_data %>%
 ### Check mobility in counties and in counties with cases
 
 
+### Temporal data: yearly cases in Texas
+# Historic data from :https://www.dshs.texas.gov/vaccine-preventable-diseases/vaccine-preventable-disease-conditions/measles-rubeola/measles-rubeola/measles-rubeola-data
+
+temporal_measles_TX<-read_csv("Data/yearly_measles_Texas.csv")
+t(temporal_measles_TX)
+temporal_measles_TX %>% as_tibble() %>% column_to_rownames("...1") %>% t() %>% as_tibble()
+mutate_all(as.numeric)
+  
+temporal_measles_TX %>%
+  mutate(From2006_to_2014=`2006`+`2007`+`2008`+`2009`+`2010`+`2011`+`2012`+`2013`+`2014`) %>%
+  mutate(From2015_to_2023=`2015`+`2016`+`2017`+`2018`+`2019`+`2020`+`2021`+`2022`+`2023`) %>%
+  select(County="...1",contains("From"))
 

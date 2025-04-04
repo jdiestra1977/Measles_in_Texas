@@ -1,0 +1,344 @@
+---
+title: "Private (and other) schools"
+author: "JL-Herrera"
+date: "2025-04-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(sf)
+library(cowplot)
+setwd("~/Documents/GitHub/Measles_in_Texas/")
+
+```
+
+## School districts
+
+Using the data extracted from the TEA we get [school district boundaries](https://schoolsdata2-tea-texas.opendata.arcgis.com).
+
+```{r School districts}
+###  ------
+
+#Data extracted from: https://schoolsdata2-tea-texas.opendata.arcgis.com
+#Following the link "current districts"
+#https://schoolsdata2-tea-texas.opendata.arcgis.com/datasets/edbb3c145304494382da3aa30c154b5e/explore?showTable=true
+school_districts_map_original <- read_sf("Data/school_districts/Current_Districts_2025/Current_Districts_2025.shp")
+
+ggplot() + theme_void() + 
+  geom_sf(data=school_districts_map_original,fill="white",color="gray")
+
+```
+
+## Risk data
+
+Here I create two data frames. One with all districts (risk_eval_clean_with_counties), and one with non-SD districts (risk_non_SD_schools).
+
+```{r pressure, echo=FALSE}
+risk_data <- read_csv("Data/school_districts/Texas_measles_full_lookup_table_more.csv")
+#risk_data %>% glimpse()
+
+risk_eval_clean_with_counties<-risk_data %>% 
+  select(County,SchoolDistrict_or_Name=`School District or Name`,metric,
+         for500=`500`,ageGroup=`Age Group`) %>% 
+  mutate(County=toupper(County),SchoolDistrict_or_Name=toupper(SchoolDistrict_or_Name))
+
+risk_non_SD_schools <- risk_eval_clean_with_counties %>%
+  filter(!grepl("SD$", SchoolDistrict_or_Name),metric=="probability_exceeding_10_total_cases") %>%
+  drop_na()
+
+head(risk_non_SD_schools)
+```
+
+### Kindergarten
+
+```{r}
+risk_eval_kindergarten<-risk_eval_clean_with_counties %>% 
+  filter(ageGroup=="Kindergarten")
+
+#Homogenization of names
+# to upper all letters in names:
+school_districts_map<-school_districts_map_original %>% select(NAME) %>%
+  mutate(NAME=toupper(NAME))
+risk_eval_kindergarten<-risk_eval_kindergarten %>% 
+  select(County,NAME=SchoolDistrict_or_Name,metric,for500) %>%
+  mutate(NAME=toupper(NAME))
+
+#Changing only one case in map data
+school_districts_map<-school_districts_map %>% 
+  mutate(NAME=NAME %>% str_replace_all(c("CONSOLIDATED"="CONS"))) 
+
+#Changing in risk from CISD to CONS ISD to match with map
+risk_eval_kindergarten<- risk_eval_kindergarten %>% filter(str_detect(NAME,"SD")) %>%
+  mutate(NAME=NAME %>% str_replace_all(c("CISD"="CONS ISD",
+                                         "MT-SAGINAW"="MOUNTAIN-SAGINAW",
+                                         "FT SAM"="FORT SAM",
+                                         "GOLD BURG"="GOLD-BURG",
+                                         "CONSOLIDATED"="CONS",
+                                         "FT DAVIS"="FORT DAVIS",
+                                         "FT HANCOCK"="FORT HANCOCK",
+                                         "COUNTY WIDE"="COUNTY-WIDE",
+                                         "SCHERTZ-CIBOLO-U CITY ISD"="SCHERTZ-CIBOLO-UNIVERSAL CITY ISD")))
+
+#To add school districts with the same name in different counties
+risk_eval_kindergarten<-risk_eval_kindergarten %>%
+  mutate(NAME=ifelse(NAME=="BIG SANDY ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="CHAPEL HILL ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="CENTERVILLE ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="DAWSON ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="EDGEWOOD ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="HIGHLAND PARK ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="HUBBARD ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="MIDWAY ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="NORTHSIDE ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="VALLEY VIEW ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="WYLIE ISD",paste0(NAME," (",County,")"),NAME)) 
+
+#risk_eval_kindergarten$metric %>% unique()
+
+data_prob_kinder<-school_districts_map %>% 
+  left_join(risk_eval_kindergarten %>% select(-County)) %>%
+  filter(metric=="probability_exceeding_10_total_cases") %>%
+  filter(NAME!="ROSCOE COLLEGIATE ISD") 
+
+ggplot() +
+  geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=data_prob_kinder,aes(fill=for500)) + theme_void() + 
+  scale_fill_gradient(low = "cornsilk1",high = "blue4",name="") +
+  ggtitle("Probability of outbreaks larger 10 cases - kindergarten")
+```
+
+### Seventh grade
+
+```{r}
+risk_eval_seventh<-risk_eval_clean_with_counties %>% 
+  filter(ageGroup=="7th Grade")
+
+#Homogenization of names
+# to upper all letters in names:
+school_districts_map<-school_districts_map %>% select(NAME) %>%
+  mutate(NAME=toupper(NAME))
+risk_eval_seventh<-risk_eval_seventh %>% 
+  select(County,NAME=SchoolDistrict_or_Name,metric,for500) %>%
+  mutate(NAME=toupper(NAME))
+
+#Changing only one case in map data
+school_districts_map<-school_districts_map %>% 
+  mutate(NAME=NAME %>% str_replace_all(c("CONSOLIDATED"="CONS"))) 
+
+#Changing in risk from CISD to CONS ISD to match with map
+risk_eval_seventh<- risk_eval_seventh %>% filter(str_detect(NAME,"SD")) %>%
+  mutate(NAME=NAME %>% str_replace_all(c("CISD"="CONS ISD",
+                                         "MT-SAGINAW"="MOUNTAIN-SAGINAW",
+                                         "FT SAM"="FORT SAM",
+                                         "GOLD BURG"="GOLD-BURG",
+                                         "CONSOLIDATED"="CONS",
+                                         "FT DAVIS"="FORT DAVIS",
+                                         "FT HANCOCK"="FORT HANCOCK",
+                                         "COUNTY WIDE"="COUNTY-WIDE",
+                                         "SCHERTZ-CIBOLO-U CITY ISD"="SCHERTZ-CIBOLO-UNIVERSAL CITY ISD")))
+
+#To add school districts with the same name in different counties
+risk_eval_seventh<-risk_eval_seventh %>%
+  mutate(NAME=ifelse(NAME=="BIG SANDY ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="CHAPEL HILL ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="CENTERVILLE ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="DAWSON ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="EDGEWOOD ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="HIGHLAND PARK ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="HUBBARD ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="MIDWAY ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="NORTHSIDE ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="VALLEY VIEW ISD",paste0(NAME," (",County,")"),NAME)) %>%
+  mutate(NAME=ifelse(NAME=="WYLIE ISD",paste0(NAME," (",County,")"),NAME))
+
+#There are 3 ISDs that are in the risk file, but not in the school map
+#setdiff(risk_eval_seventh$NAME,school_districts_map$NAME)
+
+data_prob_seventh<-school_districts_map %>% 
+  left_join(risk_eval_seventh) %>%
+  filter(metric=="probability_exceeding_10_total_cases") %>%
+  filter(NAME!="ROSCOE COLLEGIATE ISD")
+
+ggplot() + theme_void() + 
+  geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=data_prob_seventh,aes(fill=for500)) + 
+  scale_fill_gradient(low = "cornsilk1",high = "blue4",name="") +
+  ggtitle("Probability of outbreaks larger 10 cases - 7th grade")
+
+```
+
+
+## Private schools and other 
+
+Shape file for schools for enrollment 2023-2024 can be obtained [here](https://schoolsdata2-tea-texas.opendata.arcgis.com/datasets/TEA-Texas::schools-2023-to-2024/explore?location=29.472835%2C-99.372450%2C6.30&showTable=true). It contains a huge amount of information. I select columns that show: county, district name, and school name. Additinally, since I am interested in schools I filter out all those districts that included "SD" as the las two letters in their name (ISD, CSD, and so on).
+
+```{r}
+schools2023<-read_sf("Data/Schools_2023_to_2024/Schools_2023_to_2024.shp")
+
+#This includes all schools that "might" have kindergarten's
+#Also, I am using district and name of school columns, since the risk data
+#mixes both in the name column
+privateSchools_kinder<-schools2023 %>% 
+  filter(School_Typ %in% c("Elementary School","Elementary/Secondary")) %>%
+  select(County=Subregion,Grade_range=USER_Grade,
+         District_ISD=USER_Dis_1,School_name=USER_Sch_1,School_enroll_2023=USER_Sch15) %>%
+  #filter(School_enroll_2023>0) %>% 
+  filter(!grepl("SD$", District_ISD)) %>% 
+  select(County,District_ISD,School_name,School_enroll_2023) %>% mutate(County=County %>% str_remove_all(" County")) %>%
+  mutate(County=toupper(County),District_ISD=toupper(District_ISD),ageGroup="Kindergarten",School_name=toupper(School_name)) %>%
+  arrange(District_ISD) %>% drop_na() %>% unique()
+
+privateSchools_kinder %>% head()
+```
+
+I assumed (wrongly) that since private schools do not belong to a school district, then district and school would be unique. 
+However, this is not the case. Additionally, some of the districts in the risk data are not actually districts. The issue is that these districts are not contiguous regions. For example,
+```{r}
+privateSchools_kinder %>% as_tibble() %>% select(County,District_ISD) %>% group_by(County,District_ISD) %>% count() %>% arrange(desc(n))
+```
+which shows that the district "IDEA PUBLIC SCHOOLS" has 29 schools in Hidalgo County. 
+```{r}
+privateSchools_kinder %>% as_tibble() %>% select(County,District_ISD,School_name,School_enroll_2023) %>%
+  filter(District_ISD=="IDEA PUBLIC SCHOOLS",County=="HIDALGO")
+```
+
+The problem is that these schools are not in a given region, they are distributed around Hidalgo (we can calculate the distance between them using the coordinates, or just verify this in google maps). Now, in the risk data, "IDEA PUBLIC SCHOOLS" is considered as one contiguous district
+```{r}
+risk_eval_clean_with_counties %>% filter(str_detect(SchoolDistrict_or_Name,"IDEA PUBLIC SCHOOLS")) %>%
+  filter(metric=="probability_exceeding_10_total_cases",ageGroup=="Kindergarten",County=="HIDALGO")
+```
+This issue happens with many of the non-SD districts and private schools. I did this for 7th grade too, and get the location of schools in Texas.
+```{r}
+#This includes all middle/junior/secondary that have a 7th grade
+seventh_stu_1<-schools2023 %>% filter(School_Typ %in% c("Middle School","Junior High School","Elementary/Secondary")) %>%
+  select(County=Subregion,Grade_range=USER_Grade,District_ISD=USER_Dis_1,School_name=USER_Sch_1) %>%
+  filter(!Grade_range %in% c("06","08-09","08","PK 09-12","EE 09-12")) %>%
+  filter(!grepl("SD$", District_ISD))
+  
+#This includes all high schools with 7th grade
+seventh_stu_2<-schools2023 %>% filter(School_Typ=="High School") %>%
+  select(County=Subregion,Grade_range=USER_Grade,District_ISD=USER_Dis_1,School_name=USER_Sch_1) %>%
+  filter(str_detect(Grade_range,"07")) %>% filter(!grepl("SD$", District_ISD))
+
+#This includes all private schools that may contain 7th grade students
+privateSchools_seventh<-bind_rows(seventh_stu_1,seventh_stu_2) %>%
+  select(County,District_ISD,School_name) %>% mutate(County=County %>% str_remove_all(" County")) %>%
+  mutate(County=toupper(County),District_ISD=toupper(District_ISD),School_name=toupper(School_name),ageGroup="7th Grade") %>% 
+  drop_na() %>% unique()
+
+#Location of all private school that "might" have kindergarten students
+all_schools_kinder_nonSD<-ggplot() + theme_void() +
+  geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=privateSchools_kinder) +
+  ggtitle("Location of private schools - kindergarten (654)")
+
+#Location of all private school that 7th grade
+all_schools_seventh_nonSD<-ggplot() + theme_void() +
+  geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=privateSchools_seventh) +
+  ggtitle("Location of private schools - 7th grade (399)")
+
+plot_grid(all_schools_kinder_nonSD,all_schools_seventh_nonSD)
+```
+
+
+
+
+### Combining schools with risk
+
+Now, to build a simple and first version of the maps showing risk in districts and "private" schools I decided to keep only one of those schools in the school data, and merge with risk data.
+
+```{r}
+# For kindergarten
+
+#Merging with District
+by_district_kinder<-privateSchools_kinder %>% select(-School_name) %>% 
+  mutate(countyAndName=paste0(County,"-",District_ISD)) %>%
+  group_by(countyAndName) %>% slice(1) %>% arrange(District_ISD)
+#Merging with school name
+by_school_kinder<-privateSchools_kinder %>% select(-District_ISD) %>% 
+  mutate(countyAndName=paste0(County,"-",School_name)) %>%
+  group_by(countyAndName) %>% slice(1) %>% arrange(School_name)
+
+estos_risk_kinder <- risk_non_SD_schools %>% filter(ageGroup=="Kindergarten") %>%
+  filter(metric=="probability_exceeding_10_total_cases") %>%
+  select(-metric,-ageGroup) %>%
+  mutate(countyAndName=paste0(County,"-",SchoolDistrict_or_Name)) %>% unique()
+
+ver_1<-by_district_kinder %>% 
+  merge(estos_risk_kinder %>% select(for500,countyAndName), by="countyAndName") %>%
+  rename_at("District_ISD",~"NAME")
+ver_2<-by_school_kinder %>% 
+  merge(estos_risk_kinder %>% select(for500,countyAndName), by="countyAndName") %>%
+  rename_at("School_name",~"NAME")
+
+#bind_rows(ver_1,ver_2) %>% pull(countyAndName) %>% table() %>% as_tibble() %>% arrange(desc(n)) %>% print(n=40)
+
+all_private_schools_kinder<-bind_rows(ver_1,ver_2) %>% unique() 
+
+#### For 7th grade
+
+#Merging with District
+by_district_seventh<-privateSchools_seventh %>% select(-School_name) %>% 
+  mutate(countyAndName=paste0(County,"-",District_ISD)) %>%
+  group_by(countyAndName) %>% slice(1) %>% arrange(District_ISD) %>% unique()
+
+#Merging with school name
+by_school_seventh<-privateSchools_seventh %>% select(-District_ISD) %>% 
+  mutate(countyAndName=paste0(County,"-",School_name)) %>%
+  group_by(countyAndName) %>% slice(1) %>% arrange(School_name) %>% unique()
+
+estos_risk_seventh <- risk_non_SD_schools %>% filter(ageGroup=="7th Grade") %>%
+  filter(metric=="probability_exceeding_10_total_cases") %>%
+  select(-metric,-ageGroup) %>%
+  mutate(countyAndName=paste0(County,"-",SchoolDistrict_or_Name)) %>% unique()
+
+ver_1_seventh<-by_district_seventh %>% 
+  merge(estos_risk_seventh %>% select(for500,countyAndName), by="countyAndName") %>%
+  rename_at("District_ISD",~"NAME")
+ver_2_seventh<-by_school_seventh %>% 
+  merge(estos_risk_seventh %>% select(for500,countyAndName), by="countyAndName") %>%
+  rename_at("School_name",~"NAME")
+
+#bind_rows(ver_1_seventh,ver_2_seventh) %>% pull(countyAndName) %>% table() %>% as_tibble() %>% arrange(desc(n)) %>% print(n=40)
+
+all_private_schools_seventh<-bind_rows(ver_1_seventh,ver_2_seventh) %>% unique() 
+
+```
+
+And finally, the maps for kindergarten and 7th grade look like this
+```{r}
+kinder_private_schools<-ggplot() +
+geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=data_prob_kinder,aes(fill=for500)) + theme_void() + 
+	#scale_fill_gradientn(colors = c("#f7f7f7", "#d8b365", "#5ab4ac", "#01665e"),name="")+
+  scale_fill_distiller(palette = "PuBuGn", direction = 1,name="") +
+#  scale_fill_gradient(low = "cornsilk1",high = "blue4",name="") +
+  geom_sf(data=all_private_schools_kinder %>% filter(for500>0),
+          aes(size=for500,color=for500),shape=1,stroke=1)+
+  scale_color_gradientn(colors = c("#ff6666", "#990000", "#000000"),name="") +
+#  scale_color_gradientn(colors = c("#fdae61", "#d73027", "#67000d"),name="")+
+#  scale_color_gradient(high = "black",low = "#B4464B",name="") +
+  ggtitle("Probability of outbreaks larger 10 cases - kindergarten")+
+  guides(size = "none")
+
+seventh_private_schools<-ggplot() +
+  geom_sf(data=school_districts_map_original,fill="white",color="gray") +
+  geom_sf(data=data_prob_kinder,aes(fill=for500)) + theme_void() + 
+  #scale_fill_gradientn(colors = c("#f7f7f7", "#d8b365", "#5ab4ac", "#01665e"),name="")+
+  scale_fill_distiller(palette = "PuBuGn", direction = 1,name="") +
+  #  scale_fill_gradient(low = "cornsilk1",high = "blue4",name="") +
+  geom_sf(data=all_private_schools_seventh %>% filter(for500>0),
+          aes(size=for500,color=for500),shape=1,stroke=1)+
+  scale_color_gradientn(colors = c("#ff6666", "#990000", "#000000"),name="") +
+  #  scale_color_gradientn(colors = c("#fdae61", "#d73027", "#67000d"),name="")+
+  #  scale_color_gradient(high = "black",low = "#B4464B",name="") +
+  ggtitle("Probability of outbreaks larger 10 cases - 7th grade")+
+  guides(size = "none")
+
+plot_grid(kinder_private_schools,seventh_private_schools)
+```
+
+
